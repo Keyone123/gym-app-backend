@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 class UserCreateView(APIView):
     permission_classes = [AllowAny]
-    parser_classes = [JSONParser, FormParser]
 
     def post(self, request):
         serializer = UserCreateSerializer(data=request.data)
@@ -23,12 +22,21 @@ class UserCreateView(APIView):
                 {
                     "detail": "Dados inválidos",
                     "errors": serializer.errors,
-                    "code": "VALIDATION_ERROR",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user = serializer.save()
+        try:
+            user = serializer.save()
+        except Exception as e:
+            logger.exception("Erro ao criar usuário")
+            return Response(
+                {
+                    "detail": "Erro interno ao criar usuário",
+                    "code": "USER_CREATE_ERROR",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         return Response(
             UserSerializer(user).data,
