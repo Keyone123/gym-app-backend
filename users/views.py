@@ -13,16 +13,28 @@ logger = logging.getLogger(__name__)
 
 class UserCreateView(APIView):
     permission_classes = [AllowAny]
+    parser_classes = [JSONParser, FormParser]
 
     def post(self, request):
         serializer = UserCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "detail": "Dados inválidos",
+                    "errors": serializer.errors,
+                    "code": "VALIDATION_ERROR",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         user = serializer.save()
 
         return Response(
             UserSerializer(user).data,
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_201_CREATED,
         )
+
 
 
 class LoginView(APIView):
@@ -43,13 +55,12 @@ class LoginView(APIView):
             )
 
         try:
+            # ✅ SEM request
             user = authenticate(
-                request=request,
                 username=username,
-                password=password
+                password=password,
             )
-        except Exception as e:
-            # 🔥 Nunca mais 500 silencioso
+        except Exception:
             logger.exception("Erro interno no authenticate")
             return Response(
                 {
