@@ -24,7 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 def get_env(name: str, *, default=None, required=False):
     value = os.environ.get(name, default)
     if required and not value:
-        raise ImproperlyConfigured(f"Variável de ambiente obrigatória ausente: {name}")
+        raise ImproperlyConfigured(
+            f"Variável de ambiente obrigatória ausente: {name}"
+        )
     return value
 
 
@@ -36,11 +38,8 @@ SECRET_KEY = get_env("SECRET_KEY", required=True)
 
 DEBUG = get_env("DEBUG", default="False") == "True"
 
-ALLOWED_HOSTS = (
-    get_env("ALLOWED_HOSTS", default="").split(",")
-    if get_env("ALLOWED_HOSTS", default="")
-    else []
-)
+# 🔐 OPÇÃO A — CONTROLADO PELO RENDER
+ALLOWED_HOSTS = get_env("ALLOWED_HOSTS", required=True).split(",")
 
 
 # =====================================================
@@ -71,11 +70,15 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
 }
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 
@@ -143,10 +146,18 @@ DATABASES = {
 # =====================================================
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"
+    },
 ]
 
 
@@ -168,7 +179,9 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_STORAGE = (
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
+)
 
 
 # =====================================================
