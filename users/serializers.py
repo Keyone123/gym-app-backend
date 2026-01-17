@@ -13,7 +13,21 @@ class UserCreateSerializer(serializers.ModelSerializer):
         fields = ("id", "username", "email", "password")
 
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        try:
+            user = User.objects.create_user(
+                username=validated_data["username"],
+                email=validated_data["email"],
+                password=validated_data["password"],
+            )
+            return user
+        except IntegrityError:
+            raise serializers.ValidationError(
+                {
+                    "detail": "Username ou email já existem",
+                    "code": "USER_ALREADY_EXISTS",
+                }
+            )
+
 
 
 class UserSerializer(serializers.ModelSerializer):

@@ -1,12 +1,14 @@
-from django.contrib.auth import authenticate
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.parsers import JSONParser, FormParser
 from .serializers import UserCreateSerializer, UserSerializer
 import logging
+from django.contrib.auth import authenticate
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import JSONParser, FormParser
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 logger = logging.getLogger(__name__)
 
@@ -19,29 +21,21 @@ class UserCreateView(APIView):
 
         if not serializer.is_valid():
             return Response(
-                {
-                    "detail": "Dados inválidos",
-                    "errors": serializer.errors,
-                },
+                serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            user = serializer.save()
-        except Exception as e:
-            logger.exception("Erro ao criar usuário")
-            return Response(
-                {
-                    "detail": "Erro interno ao criar usuário",
-                    "code": "USER_CREATE_ERROR",
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        user = serializer.save()
 
         return Response(
-            UserSerializer(user).data,
+            {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+            },
             status=status.HTTP_201_CREATED,
         )
+
 
 
 
