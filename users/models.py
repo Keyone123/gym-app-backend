@@ -3,6 +3,7 @@ from django.db import models
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
+    isAdmin = models.BooleanField(default=False)
 
     REQUIRED_FIELDS = ["email"]
     USERNAME_FIELD = "username"
