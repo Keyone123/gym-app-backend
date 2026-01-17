@@ -1,21 +1,18 @@
 from django.contrib.auth import authenticate
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
-from rest_framework.parsers import JSONParser, FormParser
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from rest_framework.parsers import JSONParser, FormParser
 from .serializers import UserCreateSerializer, UserSerializer
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-@method_decorator(csrf_exempt, name="dispatch")
 class UserCreateView(APIView):
     permission_classes = [AllowAny]
-    parser_classes = [JSONParser, FormParser]
 
     def post(self, request):
         serializer = UserCreateSerializer(data=request.data)
@@ -28,7 +25,6 @@ class UserCreateView(APIView):
         )
 
 
-@method_decorator(csrf_exempt, name="dispatch")
 class LoginView(APIView):
     permission_classes = [AllowAny]
     parser_classes = [JSONParser, FormParser]
@@ -41,20 +37,35 @@ class LoginView(APIView):
             return Response(
                 {
                     "detail": "Username e senha são obrigatórios",
-                    "code": "MISSING_CREDENTIALS"
+                    "code": "MISSING_CREDENTIALS",
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user = authenticate(username=username, password=password)
+        try:
+            user = authenticate(
+                request=request,
+                username=username,
+                password=password
+            )
+        except Exception as e:
+            # 🔥 Nunca mais 500 silencioso
+            logger.exception("Erro interno no authenticate")
+            return Response(
+                {
+                    "detail": "Erro interno de autenticação",
+                    "code": "AUTH_INTERNAL_ERROR",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         if not user:
             return Response(
                 {
                     "detail": "Usuário ou senha inválidos",
-                    "code": "INVALID_CREDENTIALS"
+                    "code": "INVALID_CREDENTIALS",
                 },
-                status=status.HTTP_401_UNAUTHORIZED
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
         refresh = RefreshToken.for_user(user)
@@ -65,9 +76,9 @@ class LoginView(APIView):
                 "tokens": {
                     "refresh": str(refresh),
                     "access": str(refresh.access_token),
-                }
+                },
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
 
@@ -75,7 +86,4 @@ class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response(
-            UserSerializer(request.user).data,
-            status=status.HTTP_200_OK
-        )
+        return Response(UserSerializer(request.user).data)
